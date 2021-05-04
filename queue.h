@@ -2,21 +2,23 @@
 #define HEADER_FILE
 
 
-struct element {
+typedef struct item {
   int type; //Machine type
   int time; //Using time
-};
+}Item;
 
 typedef struct queue {
-	// Define the struct yourself
-	int param1;
-}queue;
+	int size;
+    int len;
+    int head;
+    Item *buffer;
+}Queue;
 
-queue* queue_init (int size);
-int queue_destroy (queue *q);
-int queue_put (queue *q, struct element* elem);
-struct element * queue_get(queue *q);
-int queue_empty (queue *q);
-int queue_full(queue *q);
+Queue* queue_init (int size);
+int queue_destroy (Queue *q);
+int queue_put (Queue *q, Item *item);
+Item* queue_get(Queue *q);
+int queue_empty (Queue *q);
+int queue_full(Queue *q);
 
 #endif

@@ -10,40 +10,51 @@
 
 
 //To create a queue
-queue* queue_init(int size){
+Queue* queue_init(int size){
 
-    queue * q = (queue *)malloc(sizeof(queue));
+    Queue *q = (Queue *)malloc(sizeof(Queue));
+    q->size = size;
+    q->len = 0;
+    q->head = 0;
+    q->buffer = (Item *)malloc(size * sizeof(Item)); 
 
     return q;
 }
 
 
 // To Enqueue an element
-int queue_put(queue *q, struct element* x) {
+int queue_put(Queue *q, Item *x) {
+    if(queue_full(q))
+        return -1;
+    int index = (q->head + q->len) % q->size;
+    q->len++;
+    q->buffer[index] = *x;
     return 0;
 }
 
 
 // To Dequeue an element.
-struct element* queue_get(queue *q) {
-    struct element* element;
-    
-    return element;
+Item* queue_get(Queue *q) {
+    if(queue_empty(q))
+        return NULL;
+    Item* item = &(q->buffer[q->head]);
+    q->head = (q->head + 1) % q->size;
+    q->len--;
+    return item;
 }
 
 
 //To check queue state
-int queue_empty(queue *q){
-    
-    return 0;
+int queue_empty(Queue *q){
+    return q->len == 0 ? 1 : 0;
 }
 
-int queue_full(queue *q){
-    
-    return 0;
+int queue_full(Queue *q){
+    return q->len == q->size ? 1 : 0;
 }
 
 //To destroy the queue and free the resources
-int queue_destroy(queue *q){
+int queue_destroy(Queue *q){
+    free(q);
     return 0;
 }
