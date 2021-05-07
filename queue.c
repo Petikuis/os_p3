@@ -29,6 +29,7 @@ int queue_put(Queue *q, Item *x) {
     int index = (q->head + q->len) % q->size;
     q->len++;
     q->buffer[index] = *x;
+    free(x); // Lose referenciation to the item 
     return 0;
 }
 
@@ -57,4 +58,14 @@ int queue_full(Queue *q){
 int queue_destroy(Queue *q){
     free(q);
     return 0;
+}
+
+
+Item* item_init(int type, int time){
+
+    Item *i = (Item *)malloc(sizeof(Item));
+    i->type = type;
+    i->time = time;
+
+    return i;
 }

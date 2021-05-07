@@ -20,5 +20,6 @@ int queue_put (Queue *q, Item *item);
 Item* queue_get(Queue *q);
 int queue_empty (Queue *q);
 int queue_full(Queue *q);
+Item* item_init(int type, int time);
 
 #endif
