@@ -2,24 +2,25 @@
 #define HEADER_FILE
 
 
-typedef struct item {
-  int type; //Machine type
-  int time; //Using time
-}Item;
+typedef struct operation {
+    int id;   // Operation id
+    int type; // Machine type
+    int time; // Using time
+}Operation;
 
 typedef struct queue {
-	int size;
+    int size;
     int len;
     int head;
-    Item *buffer;
+    Operation *buffer;
 }Queue;
 
 Queue* queue_init (int size);
 int queue_destroy (Queue *q);
-int queue_put (Queue *q, Item *item);
-Item* queue_get(Queue *q);
+int queue_put (Queue *q, Operation *item);
+Operation* queue_get(Queue *q);
 int queue_empty (Queue *q);
 int queue_full(Queue *q);
-Item* item_init(int type, int time);
+Operation* op_init(int id, int type, int time);
 
 #endif

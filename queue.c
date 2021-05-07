@@ -1,6 +1,3 @@
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -16,32 +13,31 @@ Queue* queue_init(int size){
     q->size = size;
     q->len = 0;
     q->head = 0;
-    q->buffer = (Item *)malloc(size * sizeof(Item)); 
+    q->buffer = (Operation *)malloc(size * sizeof(Operation)); 
 
     return q;
 }
 
 
 // To Enqueue an element
-int queue_put(Queue *q, Item *x) {
+int queue_put(Queue *q, Operation *x) {
     if(queue_full(q))
         return -1;
     int index = (q->head + q->len) % q->size;
     q->len++;
     q->buffer[index] = *x;
-    free(x); // Lose referenciation to the item 
     return 0;
 }
 
 
 // To Dequeue an element.
-Item* queue_get(Queue *q) {
+Operation* queue_get(Queue *q) {
     if(queue_empty(q))
         return NULL;
-    Item* item = &(q->buffer[q->head]);
+    Operation* op = &(q->buffer[q->head]);
     q->head = (q->head + 1) % q->size;
     q->len--;
-    return item;
+    return op;
 }
 
 
@@ -61,11 +57,12 @@ int queue_destroy(Queue *q){
 }
 
 
-Item* item_init(int type, int time){
+Operation* op_init(int id, int type, int time){
 
-    Item *i = (Item *)malloc(sizeof(Item));
-    i->type = type;
-    i->time = time;
+    Operation *op = (Operation *)malloc(sizeof(Operation));
+    op->id = id;
+    op->type = type;
+    op->time = time;
 
-    return i;
+    return op;
 }

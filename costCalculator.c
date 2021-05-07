@@ -17,11 +17,6 @@
 
 enum{COMMON, COMPUTATION, SUPER};
 
-typedef struct operation{
-	int id;
-	Item *item;
-}Operation;
-
 int type_to_cost[] = {
 	[COMMON] = 1,
 	[COMPUTATION] = 3,
@@ -37,15 +32,6 @@ void apply_input_redirection(const char *filename){
     close(STDIN_FILENO);
     dup2(fd_in, STDIN_FILENO);
     close(fd_in);
-}
-
-Operation* op_init(int id, int type, int time){
-
-    Operation *op = (Operation *)malloc(sizeof(Operation));
-    op->id = id;
-    op->item = item_init(type, time);
-
-    return op;
 }
 
 int file_parser(const char *filename, int producer_num, Operation **op_array){
@@ -91,37 +77,30 @@ int main (int argc, const char * argv[] ) {
 
 	int op_num = file_parser(filename, producer_num, op_array);
 
-	for (int producer = 0; producer < producer_num; producer++){
+	/*for (int producer = 0; producer < producer_num; producer++){
 		int array_size = get_op_array_size(op_num, producer, producer_num);
 		for (int op = 0; op < array_size; op++){
 			printf("Operation assigned to producer %d with id %d, type %d and time %d\n", 
 					producer, op_array[producer][op].id, 
-					(op_array[producer][op].item)->type, 
-					(op_array[producer][op].item)->time);
+					op_array[producer][op].type, 
+					op_array[producer][op].time);
 		}
 
 	}
 
 
 
-	/*Queue *q = queue_init(5);
-	queue_put(q, item_init(COMMON, 3));
-
-	queue_put(q, item_init(COMPUTATION, 5));
-
-	queue_put(q, item_init(SUPER, 7));
-
-	queue_put(q, item_init(COMMON, 7));
-
-	queue_put(q, item_init(COMPUTATION, 7));
-
-	int i = 0;
+	Queue *q = queue_init(5);
+	queue_put(q, op_init(0, COMMON, 3));
+	queue_put(q, op_init(1, COMPUTATION, 5));
+	queue_put(q, op_init(2, SUPER, 7));
+	queue_put(q, op_init(3, COMMON, 7));
+	queue_put(q, op_init(4, COMPUTATION, 7));
 
 	while (!queue_empty(q)){
-		Item *my_item = queue_get(q);
-		printf("The %d item has type %d and the time is %d\n", i, my_item->type, my_item->time);
-		if (i == 0) queue_put(q, item_init(SUPER, 10));
-		i++;
+		Operation *op = queue_get(q);
+		printf("The %d item has type %d and the time is %d\n", op->id, op->type, op->time);
+		if (op->id == 0) queue_put(q, op_init(5, SUPER, 10));
 	}
 
 	queue_destroy(q);
