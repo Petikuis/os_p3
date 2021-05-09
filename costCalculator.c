@@ -74,7 +74,6 @@ int file_parser(const char *filename, int producer_num, OpArray *op_array){
         	scanf("%d %d %d", &id, &type, &time);
         	if (previous == id) exit(-1);
         	else previous = id;
-        	(op_array[producer].ops)[operation].id = id;
         	(op_array[producer].ops)[operation].type = --type;
         	(op_array[producer].ops)[operation].time = time;
     	}
@@ -158,6 +157,16 @@ void* consume(void* args){
 
 /*************************************/
 
+// Get the number of ops that each consumer has to consume
+/*************************************/
+int get_ops_to_consume(int op_num, int consumer_num, int total_consumers){
+    int base_ops = op_num / total_consumers,
+        remainder_ops = op_num % total_consumers;
+    return base_ops + (consumer_num < remainder_ops ? 1 : 0);
+}
+
+/*************************************/
+
 int main (int argc, const char * argv[] ) {
 
 	if (argc > 4){
@@ -202,8 +211,12 @@ int main (int argc, const char * argv[] ) {
 	pthread_t producers[producer_num];
 	pthread_t consumers[NUM_CONSUMERS];
 
+	int assigned_ops = op_num / NUM_CONSUMERS,
+        remainder_ops = op_num % NUM_CONSUMERS;
+
 	for (int consumer = 0; consumer < NUM_CONSUMERS; consumer++){
-		if(pthread_create(&consumers[consumer], NULL, (void *)&consume, (void *)&op_num) < 0){
+		int ops_to_consume = assigned_ops + (remainder_ops > 0 ? 1 : 0);
+		if(pthread_create(&consumers[consumer], NULL, (void *)&consume, (void *)&ops_to_consume) < 0){
 			perror("[Error]: Could not create the consumer thread(s)");
 			exit(-1);
 		}

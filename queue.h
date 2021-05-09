@@ -3,7 +3,6 @@
 
 
 typedef struct operation {
-    int id;   // Operation id
     int type; // Machine type
     int time; // Using time
 }Operation;
@@ -21,6 +20,5 @@ int queue_put (Queue *q, Operation *item);
 Operation* queue_get(Queue *q);
 int queue_empty (Queue *q);
 int queue_full(Queue *q);
-Operation* op_init(int id, int type, int time);
 
 #endif
