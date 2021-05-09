@@ -4,8 +4,6 @@
 #include <string.h>
 #include "queue.h"
 
-
-
 //To create a queue
 Queue* queue_init(int size){
 
@@ -18,7 +16,6 @@ Queue* queue_init(int size){
     return q;
 }
 
-
 // To Enqueue an element
 int queue_put(Queue *q, Operation *x) {
     if(queue_full(q))
@@ -29,7 +26,6 @@ int queue_put(Queue *q, Operation *x) {
     return 0;
 }
 
-
 // To Dequeue an element.
 Operation* queue_get(Queue *q) {
     if(queue_empty(q))
@@ -39,7 +35,6 @@ Operation* queue_get(Queue *q) {
     q->len--;
     return op;
 }
-
 
 //To check queue state
 int queue_empty(Queue *q){

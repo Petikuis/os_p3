@@ -1,7 +1,6 @@
 #ifndef HEADER_FILE
 #define HEADER_FILE
 
-
 typedef struct operation {
     int type; // Machine type
     int time; // Using time
