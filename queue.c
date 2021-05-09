@@ -55,14 +55,3 @@ int queue_destroy(Queue *q){
     free(q);
     return 0;
 }
-
-
-Operation* op_init(int id, int type, int time){
-
-    Operation *op = (Operation *)malloc(sizeof(Operation));
-    op->id = id;
-    op->type = type;
-    op->time = time;
-
-    return op;
-}

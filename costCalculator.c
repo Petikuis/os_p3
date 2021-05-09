@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -10,7 +9,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-
 
 #define NUM_CONSUMERS 1
 
@@ -27,9 +25,10 @@ pthread_cond_t can_get;
 Queue *q;
 int total = 0;
 
-// Create structure variables
 /*************************************/
 
+// Create structure variables
+/*************************************/
 enum{COMMON, COMPUTATION, SUPER};
 
 int type_to_cost[] = {
@@ -50,7 +49,7 @@ typedef struct op_array{
 void apply_input_redirection(const char *filename){
 	int fd_in;
 	if ((fd_in = open(filename, O_RDONLY)) < 0){
-        printf("[ERROR] Input file is not valid\n");
+        perror("[ERROR] Input file is not valid");
         exit(-1);
     }
     close(STDIN_FILENO);
@@ -73,7 +72,7 @@ int file_parser(const char *filename, int producer_num, OpArray *op_array){
     	for(int operation = 0; operation < ops_to_insert; operation++){
     		int id, type, time;
         	scanf("%d %d %d", &id, &type, &time);
-        	if (previous == id) return -1;
+        	if (previous == id) exit(-1);
         	else previous = id;
         	(op_array[producer].ops)[operation].id = id;
         	(op_array[producer].ops)[operation].type = --type;
@@ -94,12 +93,28 @@ void* produce(void* args){
 	Operation *prod_ops = prod_op_array->ops;
 
 	for (int op = 0; op < array_size; op++){
-		pthread_mutex_lock(&buffer);
-		while (queue_full(q))
-			pthread_cond_wait(&can_put, &buffer);
-		queue_put(q, &prod_ops[op]);
-		pthread_cond_signal(&can_get);
-		pthread_mutex_unlock(&buffer);
+		if(pthread_mutex_lock(&buffer) < 0){
+			perror("[Error]: Could not lock the mutex");
+			exit(-1);
+		}
+		while (queue_full(q)){
+			if(pthread_cond_wait(&can_put, &buffer) < 0){
+				perror("[Error]: Could not wait for condition");
+				exit(-1);
+			}
+		}
+		if(queue_put(q, &prod_ops[op])< 0){
+			perror("[Error]: The queue is empty");
+			exit(-1);
+		}
+		if(pthread_cond_signal(&can_get)< 0){
+			perror("[Error]: Could not post for condition");
+			exit(-1);
+		}
+		if(pthread_mutex_unlock(&buffer) < 0){
+			perror("[Error]: Could not unlock the mutex");
+			exit(-1);
+		}
 	}
 	pthread_exit(0);
 
@@ -110,79 +125,126 @@ void* consume(void* args){
 	int remaining_ops = *((int *)args);
 
 	while (remaining_ops > 0){
-		pthread_mutex_lock(&buffer);
+		if(pthread_mutex_lock(&buffer) < 0){
+			perror("[Error]: Could not lock the mutex");
+			exit(-1);
+		}
 		while (queue_empty(q)){
-			pthread_cond_wait(&can_get, &buffer);
+			if(pthread_cond_wait(&can_get, &buffer) < 0){
+				perror("[Error]: Could not wait for condition");
+				exit(-1);
+			}
 		}
 		data = queue_get(q);
+		if(data < 0){
+			perror("[Error]: Could not get an element from the queue");
+			exit(-1);
+		}
 		total += type_to_cost[data->type] * data->time;
 		//printf("New consume with type %d, time %d, cost %d and total %d\n", data->type, data->time, type_to_cost[data->type] * data->time, total);
-		pthread_cond_signal(&can_put);
-		pthread_mutex_unlock(&buffer);
+		if(pthread_cond_signal(&can_put)< 0){
+			perror("[Error]: Could not post for condition");
+			exit(-1);
+		}
+		if(pthread_mutex_unlock(&buffer) < 0){
+			perror("[Error]: Could not unlock the mutex");
+			exit(-1);
+		}
 		remaining_ops--;
 	}
 	pthread_exit(0);
 
 }
 
-/**
- * Entry point
- * @param argc
- * @param argv
- * @return
- */
+/*************************************/
+
 int main (int argc, const char * argv[] ) {
 
 	if (argc > 4){
 		perror("Number of args invalid");
-		return -1;
+		exit(-1);
 	}
 
 	int producer_num = atoi(argv[2]);
 	if (producer_num <= 0){
 		perror("Number of producers invalid");
-		return -1;
+		exit(-1);
 	}
 
 	int queue_size = atoi(argv[3]);
 	if (queue_size <= 0){
 		perror("Circular buffer size invalid");
-		return -1;
+		exit(-1);
 	}
 
 	q = queue_init(queue_size);
+	
 	OpArray op_array[producer_num];
 	int op_num = file_parser(argv[1], producer_num, op_array);
 	if (op_num < 1){
 		perror("Not enough operations");
-		return -1;
+		exit(-1);
 	}
 
-	pthread_mutex_init(&buffer, NULL);
-	pthread_cond_init(&can_put, NULL);
-	pthread_cond_init(&can_get, NULL);
+	if(pthread_mutex_init(&buffer, NULL) < 0){
+		perror("[Error]: Could not init the mutex");
+		exit(-1);
+	}
+	if(pthread_cond_init(&can_put, NULL) < 0){
+		perror("[Error]: Could not init the condition");
+		exit(-1);
+	}
+	if(pthread_cond_init(&can_get, NULL) < 0){
+		perror("[Error]: Could not init the condition");
+		exit(-1);
+	}
 
 	pthread_t producers[producer_num];
-	pthread_t consumer;
+	pthread_t consumers[NUM_CONSUMERS];
 
-	pthread_create(&consumer, NULL, (void *)&consume, (void *)&op_num);
-
-	for (int producer = 0; producer < producer_num; producer++){
-		pthread_create(&producers[producer], NULL, (void *)&produce, (void *)&op_array[producer]);
+	for (int consumer = 0; consumer < NUM_CONSUMERS; consumer++){
+		if(pthread_create(&consumers[consumer], NULL, (void *)&consume, (void *)&op_num) < 0){
+			perror("[Error]: Could not create the consumer thread(s)");
+			exit(-1);
+		}
 	}
 
 	for (int producer = 0; producer < producer_num; producer++){
-		pthread_join(producers[producer], NULL);
+		if(pthread_create(&producers[producer], NULL, (void *)&produce, (void *)&op_array[producer]) < 0){
+			perror("[Error]: Could not create the producer thread(s)");
+			exit(-1);
+		}
 	}
 
-	pthread_join(consumer, NULL);
+	for (int producer = 0; producer < producer_num; producer++){
+		if(pthread_join(producers[producer], NULL) < 0){
+			perror("[Error]: Could not join the thread(s)");
+			exit(-1);
+		}
+	}
+
+	for (int consumer = 0; consumer < NUM_CONSUMERS; consumer++){
+		if(pthread_join(consumers[consumer], NULL) < 0){
+			perror("[Error]: Could not join the thread(s)");
+			exit(-1);
+		}
+	}
 
 	printf("Total: %i €.\n", total);
 
 	queue_destroy(q);
-	pthread_mutex_destroy(&buffer);
-	pthread_cond_destroy(&can_put);
-	pthread_cond_destroy(&can_get);
+	if(pthread_mutex_destroy(&buffer) < 0){
+		perror("[Error]: Could not destroy the mutex");
+		exit(-1);
+	}
+	if(pthread_cond_destroy(&can_put) < 0){
+		perror("[Error]: Could not destroy the condition");
+		exit(-1);
+	}
+	if(pthread_cond_destroy(&can_get) < 0){
+		perror("[Error]: Could not destroy the condition");
+		exit(-1);
+	}
 
 	/*for (int producer = 0; producer < producer_num; producer++){
 		int array_size = op_array[producer].len;
@@ -194,8 +256,6 @@ int main (int argc, const char * argv[] ) {
 		}
 
 	}
-
-
 
 	Queue *q = queue_init(5);
 	queue_put(q, op_init(0, COMMON, 3));
