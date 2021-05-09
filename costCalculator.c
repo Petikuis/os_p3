@@ -158,7 +158,7 @@ void* consume(void* args){
 
 int main (int argc, const char * argv[] ) {
 
-	if (argc != 3){
+	if (argc != 4){
 		perror("[Error] Number of args invalid");
 		exit(-1);
 	}
