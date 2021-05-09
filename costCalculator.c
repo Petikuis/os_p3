@@ -103,7 +103,7 @@ void* produce(void* args){
 			}
 		}
 		if(queue_put(q, &prod_ops[op])< 0){
-			perror("[Error]: The queue is empty");
+			perror("[Error]: The queue is full");
 			exit(-1);
 		}
 		if(pthread_cond_signal(&can_get)< 0){
@@ -153,16 +153,6 @@ void* consume(void* args){
 	}
 	pthread_exit(0);
 
-}
-
-/*************************************/
-
-// Get the number of ops that each consumer has to consume
-/*************************************/
-int get_ops_to_consume(int op_num, int consumer_num, int total_consumers){
-    int base_ops = op_num / total_consumers,
-        remainder_ops = op_num % total_consumers;
-    return base_ops + (consumer_num < remainder_ops ? 1 : 0);
 }
 
 /*************************************/
