@@ -49,7 +49,7 @@ typedef struct op_array{
 void apply_input_redirection(const char *filename){
 	int fd_in;
 	if ((fd_in = open(filename, O_RDONLY)) < 0){
-        perror("[ERROR] Input file is not valid");
+        perror("[Error] Input file is not valid");
         exit(-1);
     }
     close(STDIN_FILENO);
@@ -93,25 +93,25 @@ void* produce(void* args){
 
 	for (int op = 0; op < array_size; op++){
 		if(pthread_mutex_lock(&buffer) < 0){
-			perror("[Error]: Could not lock the mutex");
+			perror("[Error] Could not lock the mutex");
 			exit(-1);
 		}
 		while (queue_full(q)){
 			if(pthread_cond_wait(&can_put, &buffer) < 0){
-				perror("[Error]: Could not wait for condition");
+				perror("[Error] Could not wait for condition \"can_put\"");
 				exit(-1);
 			}
 		}
 		if(queue_put(q, &prod_ops[op])< 0){
-			perror("[Error]: The queue is full");
+			perror("[Error] The queue is full");
 			exit(-1);
 		}
 		if(pthread_cond_signal(&can_get)< 0){
-			perror("[Error]: Could not post for condition");
+			perror("[Error] Could not signal the condition \"can_get\"");
 			exit(-1);
 		}
 		if(pthread_mutex_unlock(&buffer) < 0){
-			perror("[Error]: Could not unlock the mutex");
+			perror("[Error] Could not unlock the mutex");
 			exit(-1);
 		}
 	}
@@ -125,28 +125,27 @@ void* consume(void* args){
 
 	while (remaining_ops > 0){
 		if(pthread_mutex_lock(&buffer) < 0){
-			perror("[Error]: Could not lock the mutex");
+			perror("[Error] Could not lock the mutex");
 			exit(-1);
 		}
 		while (queue_empty(q)){
 			if(pthread_cond_wait(&can_get, &buffer) < 0){
-				perror("[Error]: Could not wait for condition");
+				perror("[Error] Could not wait for condition \"can_get\"");
 				exit(-1);
 			}
 		}
 		data = queue_get(q);
-		if(data < 0){
-			perror("[Error]: Could not get an element from the queue");
+		if(data == NULL){
+			perror("[Error] Queue is empty");
 			exit(-1);
 		}
 		total += type_to_cost[data->type] * data->time;
-		//printf("New consume with type %d, time %d, cost %d and total %d\n", data->type, data->time, type_to_cost[data->type] * data->time, total);
-		if(pthread_cond_signal(&can_put)< 0){
-			perror("[Error]: Could not post for condition");
+		if(pthread_cond_signal(&can_put) < 0){
+			perror("[Error] Could not signal the condition \"can_put\"");
 			exit(-1);
 		}
 		if(pthread_mutex_unlock(&buffer) < 0){
-			perror("[Error]: Could not unlock the mutex");
+			perror("[Error] Could not unlock the mutex");
 			exit(-1);
 		}
 		remaining_ops--;
@@ -159,20 +158,25 @@ void* consume(void* args){
 
 int main (int argc, const char * argv[] ) {
 
-	if (argc > 4){
-		perror("Number of args invalid");
+	if (argc != 3){
+		perror("[Error] Number of args invalid");
+		exit(-1);
+	}
+
+	if (NUM_CONSUMERS < 1){
+		perror("[Error] Number of consumers invalid");
 		exit(-1);
 	}
 
 	int producer_num = atoi(argv[2]);
 	if (producer_num <= 0){
-		perror("Number of producers invalid");
+		perror("[Error] Number of producers invalid");
 		exit(-1);
 	}
 
 	int queue_size = atoi(argv[3]);
 	if (queue_size <= 0){
-		perror("Circular buffer size invalid");
+		perror("[Error] Circular buffer size invalid");
 		exit(-1);
 	}
 
@@ -181,20 +185,20 @@ int main (int argc, const char * argv[] ) {
 	OpArray op_array[producer_num];
 	int op_num = file_parser(argv[1], producer_num, op_array);
 	if (op_num < 1){
-		perror("Not enough operations");
+		perror("[Error] Not enough operations");
 		exit(-1);
 	}
 
 	if(pthread_mutex_init(&buffer, NULL) < 0){
-		perror("[Error]: Could not init the mutex");
+		perror("[Error] Could not init the mutex");
 		exit(-1);
 	}
 	if(pthread_cond_init(&can_put, NULL) < 0){
-		perror("[Error]: Could not init the condition");
+		perror("[Error] Could not init the condition \"can_put\"");
 		exit(-1);
 	}
 	if(pthread_cond_init(&can_get, NULL) < 0){
-		perror("[Error]: Could not init the condition");
+		perror("[Error] Could not init the condition \"can_get\"");
 		exit(-1);
 	}
 
@@ -207,28 +211,28 @@ int main (int argc, const char * argv[] ) {
 	for (int consumer = 0; consumer < NUM_CONSUMERS; consumer++){
 		int ops_to_consume = assigned_ops + (remainder_ops > 0 ? 1 : 0);
 		if(pthread_create(&consumers[consumer], NULL, (void *)&consume, (void *)&ops_to_consume) < 0){
-			perror("[Error]: Could not create the consumer thread(s)");
+			perror("[Error] Could not create consumer thread");
 			exit(-1);
 		}
 	}
 
 	for (int producer = 0; producer < producer_num; producer++){
 		if(pthread_create(&producers[producer], NULL, (void *)&produce, (void *)&op_array[producer]) < 0){
-			perror("[Error]: Could not create the producer thread(s)");
+			perror("[Error] Could not create producer thread");
 			exit(-1);
 		}
 	}
 
 	for (int producer = 0; producer < producer_num; producer++){
 		if(pthread_join(producers[producer], NULL) < 0){
-			perror("[Error]: Could not join the thread(s)");
+			perror("[Error] Could not join the producer thread");
 			exit(-1);
 		}
 	}
 
 	for (int consumer = 0; consumer < NUM_CONSUMERS; consumer++){
 		if(pthread_join(consumers[consumer], NULL) < 0){
-			perror("[Error]: Could not join the thread(s)");
+			perror("[Error] Could not join the consumer thread");
 			exit(-1);
 		}
 	}
@@ -237,15 +241,15 @@ int main (int argc, const char * argv[] ) {
 
 	queue_destroy(q);
 	if(pthread_mutex_destroy(&buffer) < 0){
-		perror("[Error]: Could not destroy the mutex");
+		perror("[Error] Could not destroy the mutex");
 		exit(-1);
 	}
 	if(pthread_cond_destroy(&can_put) < 0){
-		perror("[Error]: Could not destroy the condition");
+		perror("[Error] Could not destroy the condition \"can_put\"");
 		exit(-1);
 	}
 	if(pthread_cond_destroy(&can_get) < 0){
-		perror("[Error]: Could not destroy the condition");
+		perror("[Error] Could not destroy the condition \"can_get\"");
 		exit(-1);
 	}
 
