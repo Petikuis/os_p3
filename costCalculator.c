@@ -72,7 +72,10 @@ int file_parser(const char *filename, int producer_num, OpArray *op_array){
     	for(int operation = 0; operation < ops_to_insert; operation++){
     		int id, type, time;
         	scanf("%d %d %d", &id, &type, &time);
-        	if (previous == id) exit(-1);
+        	if (previous == id){
+				perror("[Error] Less operations than expected");
+				exit(-1);
+			}
         	else previous = id;
         	(op_array[producer].ops)[operation].type = --type;
         	(op_array[producer].ops)[operation].time = time;
