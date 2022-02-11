@@ -10,6 +10,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+// The statement asks for a problem N producers 1 consumer
+// This program works for a problem N producers M consumers
+// To change the number of consumers change NUM_CONSUMERS
 #define NUM_CONSUMERS 1
 
 // Define structs
